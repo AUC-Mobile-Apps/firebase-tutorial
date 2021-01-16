@@ -1,0 +1,20 @@
+{
+    "name": "nodejs-firebase-tutorial",
+    "private": true,
+    "main": "app.js",
+    "scripts": {
+        "dev": "node ./node_modules/nodemon/bin/nodemon.js ./app.js",
+        "start": "node ./app.js"
+    },
+    "license": "MIT",
+    "devDependencies": {
+        "nodemon": "^1.18.4"
+    },
+    "dependencies": {
+        "body-parser": "^1.18.2",
+        "express": "^4.16.2",
+        "firebase-admin": "^9.4.2",
+        "morgan": "^1.10.0",
+        "mysql": "^2.17.1"
+    }
+}
