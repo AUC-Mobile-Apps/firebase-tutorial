@@ -24,7 +24,7 @@ SOFTWARE.
 
 
 ---
-Firebase SDK & Firebase Snippets
+Firebase Snippets
 
 Copyright (c) Google, Inc.
 

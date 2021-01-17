@@ -15,19 +15,24 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.gson.Gson;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.gson.Gson;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class AuthenticatedAddition extends AppCompatActivity {
-    class MyRequest {
+    private static final String TAG = "AuthenticatedAddition";
+
+    static class MyRequest {
         Integer num1;
         Integer num2;
     };
-    class MyResponse {
+    static class MyResponse {
         Integer result;
     };
 
@@ -37,7 +42,7 @@ public class AuthenticatedAddition extends AppCompatActivity {
 
     EditText a, b;
     TextView result;
-    Button addButton;
+    Button addButton, testNotificationButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +50,7 @@ public class AuthenticatedAddition extends AppCompatActivity {
         setContentView(R.layout.activity_authenticated_addition);
 
         user = FirebaseAuth.getInstance().getCurrentUser();
+
         queue = Volley.newRequestQueue(this);
         gson = new Gson();
 
@@ -58,43 +64,79 @@ public class AuthenticatedAddition extends AppCompatActivity {
             // Code here executes on main thread after user presses button
             Log.d("Connection", "Starting...");
             user.getIdToken(true).addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    Log.d("Connection", "Got token");
-                    String idToken = task.getResult().getToken();
-                    StringRequest example = new StringRequest(Request.Method.POST,
-                        "http://10.0.2.2:3000/add",
+                if (!task.isSuccessful()) {
+                    Log.e(TAG, "Could not get authentication token.");
+                    Toast.makeText(AuthenticatedAddition.this, "Could not authenticate. Try again later.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Log.d("Connection", "Got token");
+                String idToken = task.getResult().getToken();
+                StringRequest example = new StringRequest(Request.Method.POST,
+                    "http://10.0.2.2:3000/add",
+                    response -> {
+                        MyResponse r = gson.fromJson(response, MyResponse.class);
+                        Log.d(TAG, "Responded with " + response);
+                        result.setText("" + r.result);
+                    }, error -> {
+                        Log.e(TAG, "Connection error.");
+                        Toast.makeText(AuthenticatedAddition.this, "Connection error. Try again later.", Toast.LENGTH_SHORT).show();
+                    }
+                ) {
+                    @Override
+                    public Map<String, String> getHeaders() throws AuthFailureError {
+                        Map<String, String> params = new HashMap<String, String>();
+                        params.put("Authorization", "Token " + idToken);
+                        params.put("Content-Type", "application/json");
+                        return params;
+                    }
+
+                    @Override
+                    public byte[] getBody() {
+                        MyRequest r = new MyRequest();
+                        r.num1 = Integer.parseInt(a.getText().toString());
+                        r.num2 = Integer.parseInt(b.getText().toString());
+
+                        String json = gson.toJson(r);
+                        return json.getBytes();
+                    }
+                };
+                queue.add(example);
+            });
+        });
+
+        testNotificationButton = (Button)findViewById(R.id.get_test_notification);
+        testNotificationButton.setOnClickListener(v -> {
+            user.getIdToken(true).addOnCompleteListener(task -> {
+                if (!task.isSuccessful()) {
+                    Log.e(TAG, "Could not get authentication token.");
+                    Toast.makeText(AuthenticatedAddition.this, "Could not authenticate. Try again later.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Log.d("Connection", "Got token");
+                String idToken = task.getResult().getToken();
+                StringRequest example = new StringRequest(Request.Method.POST,
+                        "http://10.0.2.2:3000/send_test_notification",
                         response -> {
-                            MyResponse r = gson.fromJson(response, MyResponse.class);
-                            Log.d("Connection", "Responded with " + response);
-                            result.setText("" + r.result);
+                            Log.d(TAG, "Check your notifications.");
                         }, error -> {
-                            Log.d("Connection", "Connection error.");
+                            Log.e(TAG, "Connection error.");
                             Toast.makeText(AuthenticatedAddition.this, "Connection error. Try again later.", Toast.LENGTH_SHORT).show();
                         }
-                    ) {
-                        @Override
-                        public Map<String, String> getHeaders() throws AuthFailureError {
-                            Map<String, String> params = new HashMap<String, String>();
-                            params.put("Authorization", "Token " + idToken);
-                            params.put("Content-Type", "application/json");
-                            return params;
-                        }
+                ) {
+                    @Override
+                    public Map<String, String> getHeaders() throws AuthFailureError {
+                        Map<String, String> params = new HashMap<String, String>();
+                        params.put("Authorization", "Token " + idToken);
+                        params.put("Content-Type", "application/json");
+                        return params;
+                    }
 
-                        @Override
-                        public byte[] getBody() {
-                            MyRequest r = new MyRequest();
-                            r.num1 = Integer.parseInt(a.getText().toString());
-                            r.num2 = Integer.parseInt(b.getText().toString());
-
-                            String json = gson.toJson(r);
-                            return json.getBytes();
-                        }
-                    };
-                    queue.add(example);
-                } else {
-                    Log.d("Connection", "Did not get token");
-                    Toast.makeText(AuthenticatedAddition.this, "Could not get token. Try again later.", Toast.LENGTH_SHORT).show();
-                }
+                    @Override
+                    public byte[] getBody() {
+                        return "{}".getBytes();
+                    }
+                };
+                queue.add(example);
             });
         });
     }

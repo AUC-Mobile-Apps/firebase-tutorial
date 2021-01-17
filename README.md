@@ -1,15 +1,16 @@
-# Using Firebase for Android Authentication with Node.js
+# Using Firebase for Android Authentication & Notifications with Node.js
 Firebase is a platform for mobile and web applications. It provides everything from databases and authentication to high level function like analytics and machine learning.
 
 There are two elements to any Firebase application: the **admin sdk** element to be integrated with the frontend, and the **client sdk** to be integrated with the backend.
 
-This tutorial will cover basic email authentication with Firebase.
+This tutorial will cover basic email authentication and notifications with Firebase.
 
 This tutorial assumes you've already acquainted yourself with the tutorial at https://github.com/donn/mobile-apps-nodejs-skeleton.
 
 Note that you're not intended to clone this tutorial and use it as a base, rather, you're supposed to incorporate elements of this tutorial into your own projects.
 
 # Getting Started
+
 Visit https://console.firebase.google.com.
 
 Create a new project. Not a demo, just a plain new project. Call it whatever you want.
@@ -53,7 +54,12 @@ router.post("/example_authenticated_api", function (req, res) {
 // [...]
 ```
 
+This use statement verifies that the token is valid before executing the GET/POST and adds the user information to `req.user`.
+
+There are two more APIs that assist with notifications that you can find in `Web/routes/index.js`: `/register_notification_token` and `/send_test_notification`. You will probably also want to add them to your routes.
+
 ## Android Setup
+
 For more in-depth instructions, check this guide: https://firebase.google.com/docs/auth/android/firebaseui
 
 1. Register an Android application by pressing (+ Add app) and then the Android Logo.
@@ -117,13 +123,35 @@ dependencies {
 	// ADD all of the following lines:
 	implementation platform('com.google.firebase:firebase-bom:26.3.0')
 	implementation 'com.google.firebase:firebase-auth'
+	implementation 'com.google.firebase:firebase-messaging'
 	
 	implementation 'com.firebaseui:firebase-ui-auth:6.4.0'
 }
 ```
-8. Create the activity you want to use for sign-in. There is a lot of code to add, frankly, and you can reference a fairly minimal example in this repo at: `Android/src/main/java/website/donn/firebasesample/MainActivity.java`.
+8. Create the activity you want to use for sign-in and FCM setup. There is a lot of code to add, frankly, and you can reference a fairly minimal example in this repo at: `Android/src/main/java/website/donn/firebasesample/MainActivity.java`. The file is well-documented with everything I do.
 
-9.  Ensure that you authenticate every request from now on. This is accomplished by adding an `Authentication` HTTP header with your request which has the value of `Token <the-token-here>`.
+
+9. Create the Firebase Messaging Service class. You can find my implementation at `Android/src/main/java/website/donn/firebasesample/MyFirebaseMessagingService.java`.
+10. Add this code to your AndroidManifest.xml inside the `<application>` tag.
+```xml
+<service
+	android:name=".MyFirebaseMessagingService"
+	android:exported="false"
+>
+  <intent-filter>
+  	<action android:name="com.google.firebase.MESSAGING_EVENT" />
+  </intent-filter>
+</service>
+<meta-data
+   android:name="com.google.firebase.messaging.default_notification_icon"
+   android:resource="@drawable/ic_launcher"
+/>
+<meta-data 	
+	android:name="com.google.firebase.messaging.default_notification_color"
+	android:resource="@color/colorAccent"
+/>
+```
+11. Ensure that you authenticate every request from now on. This is accomplished by adding an `Authentication` HTTP header with your request which has the value of `Token <the-token-here>`.
 
 ```java
 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -137,8 +165,8 @@ user.getIdToken(true).addOnCompleteListener(task -> {
 });
 
 ```
-*		An example of adding the header using Volley is available at `Android/src/main/java/website/donn/firebasesample/AuthenticatedAddition.java`. Ensure that you also add the `Content-Type` header with the value `application/json` or else the backend will not be able to interpret your data correctly.
+* An example of adding the header using Volley is available at `Android/src/main/java/website/donn/firebasesample/AuthenticatedAddition.java`. Ensure that you also add the `Content-Type` header with the value `application/json` or else the backend will not be able to interpret your data correctly.
 
-An entire sample Android app is available to cross-reference that just shows how the add API from https://github.com/donn/mobile-apps-nodejs-skeleton can incorporate authentication.
+At this point you can demo the most basic of APIs. There is the addition API from the node.js skeleton, but also a button that sends a test notification.
 
 ![Screenshot of Sample Android Application](./Images/SAMPLE_ANDROID.png)

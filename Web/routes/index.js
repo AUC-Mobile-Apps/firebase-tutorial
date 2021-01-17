@@ -35,5 +35,57 @@ router.post("/add", function (req, res) {
     return res.json({ result: result });
 });
 
+let registry = {};
+
+// Register Token
+router.use("/register_notification_token", FirebaseAuthentication);
+router.post("/register_notification_token", function (req, res) {
+    let token = req.body.fcmToken;
+
+    console.log(req.user.uid + " registered a device with token " + token);
+
+    // You might want to add it to the database or something here. :)
+
+    // Storing things in an object won't work long-term because the object
+    // is in RAM and will be gone as soon as the server restarts.
+
+    // Additionally, never use anything other than the UID to store a user's info
+    // in your database. Emails, phone numbers and names can all change.
+
+    registry[req.user.uid] = token;
+
+    return res.status(200).send("ok");
+});
+
+// Get Notification
+router.use("/send_test_notification", FirebaseAuthentication);
+router.post("/send_test_notification", function(req, res) {
+    let token = registry[req.user.uid];
+    if (token === null || token === undefined) {
+        return res.status(400).send("not registered");
+    }
+
+    console.log("Sending to token " + token);
+    
+    const message = {
+        notification: {
+            title: 'Your Request Notification',
+            body: 'Hi (:'
+        },
+        token: token
+    };
+
+    FirebaseApp.messaging().sendAll(
+        [message] // You can send multiple messages at the same time.
+    ).then(result=> {
+        console.log("Message sent successfully.");
+        return res.status(200).send("ok");
+    }).catch(err=> {
+        console.error("Message failed to send:");
+        console.error(err);
+        return res.status(500).send("Internal Server Error");
+    })
+})
+
 // Export the created router
 module.exports = router;

@@ -45,6 +45,14 @@
             android:id="@+id/result_preview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TextView" />
+            android:text="0"
+            android:textAlignment="center" />
+
+        <Button
+            android:id="@+id/get_test_notification"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Test Notification" />
+
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
